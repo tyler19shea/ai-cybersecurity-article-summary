@@ -5,6 +5,7 @@ import feedparser
 import datetime
 import logging
 import atexit
+import re
 from sendemail import sendemail
 
 load_dotenv()
@@ -94,6 +95,26 @@ def get_article_text(entry):
             logging.error(f"Failed to download or parse {entry.link}", exc_info=True)
             return None
 
+def extract_urls_from_analysis(analysis_text):
+    """Extracts URLs from the OpenAI analysis text."""
+    # url_pattern = re.compile(r'\*\*Link:\*\*\[(https?://[^\]]+)\]')
+    url_arr = []
+
+    if not analysis_text:
+        return url_arr
+
+    pattern = re.compile(
+        r"(https?|ftp|file)://[-A-Za-z0-9+&@/%?=~_|!:,.;\u4e00-\u9fa5]+[-A-Za-z0-9+&@#/%=~_|]"
+    )
+    matcher = pattern.finditer(analysis_text)
+
+    for match in matcher:
+        url_arr.append(match.group())
+
+    sorted_url_arr = sorted(set(url_arr), key=len, reverse=True)
+
+    return sorted_url_arr
+
 def main():
     system_prompt = load_system_prompt()
     if not system_prompt:
@@ -132,13 +153,17 @@ def main():
     print("Analyzing articles... This may take a moment.")
     logging.info("Analyzing articles with OpenAI...")
     analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
+    
+    links_in_analysis = extract_urls_from_analysis(analysis_result)
+    print(links_in_analysis)
+    
     logging.info(f"Writing analysis to {MESSAGE_FILE}")
     with open(MESSAGE_FILE, "w") as f:
         f.write("#CYBERSECURITY ARTICLE ANALYSIS REPORT\n")
         f.write(analysis_result)
     
-    save_processed_links(new_links)
-    logging.info(f"Saved {len(new_links)} new links to {PROCESSED_LINKS_FILE}.")
+    save_processed_links(links_in_analysis)
+    logging.info(f"Saved {len(links_in_analysis)} new links to {PROCESSED_LINKS_FILE}.")
 
     logging.info("Sending Email to users...")
     sendemail(MESSAGE_FILE)
