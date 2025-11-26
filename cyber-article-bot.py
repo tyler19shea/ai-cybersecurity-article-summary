@@ -17,9 +17,9 @@ RSS_URLS = ["https://krebsonsecurity.com/feed",
 
 MESSAGE_FILE = "message.md"
 
-logging.basicConfig(filename="CyberBot.log",format="%(asctime)s %(message)s",filemode="a", level=logging.INFO)
+logging.basicConfig(filename="CyberBot.log",format="%(asctime)s - %(levelname)s - %(message)s",filemode="a", level=logging.INFO)
 def log_exit():
-    logging.info("Bot Stopped")
+    logging.info("Exiting...")
 atexit.register(log_exit)
 
 def load_system_prompt():
@@ -27,13 +27,13 @@ def load_system_prompt():
         with open("./system_prompt", "r") as file:
             return file.read()
     except FileNotFoundError:
-        error_message = "Error: The file system_prompt was not found."
+        error_message = "Error: The system_prompt file was not found."
         print(error_message)
-        logging.info(error_message)
-    except Exception as e:
-        error_message = f"An error occurred: {e}"
+        logging.error(error_message)
+    except Exception:
+        error_message = "An unexpected error occurred while loading system_prompt."
         print(error_message)
-        logging.info(error_message)
+        logging.error(error_message, exc_info=True)
     return None
 
 def analyze_articles_with_openai(system_prompt, articles_text):
@@ -50,8 +50,9 @@ def analyze_articles_with_openai(system_prompt, articles_text):
             temperature=0
         )
         return response.choices[0].message.content
-    except Exception as e:
-        return f"Error during OpenAI API call: {e}"
+    except Exception:
+        logging.error("Error during OpenAI API call", exc_info=True)
+        return "Error during OpenAI API call. See log for details."
 
 def fetch_hn_feed(url, limit=10):
     """Fetch and parse the RSS feed."""
@@ -73,8 +74,8 @@ def get_article_text(entry):
             article.download()
             article.parse()
             return article.text
-        except Exception as e:
-            logging.error(f"Failed to download or parse {entry.link}: {e}")
+        except Exception:
+            logging.error(f"Failed to download or parse {entry.link}", exc_info=True)
             return None
 
 def main():
@@ -82,10 +83,12 @@ def main():
     if not system_prompt:
         return
 
+    logging.info("Gathering feeds...")
     all_feeds = []
     for url in RSS_URLS:
         all_feeds += fetch_hn_feed(url)
-
+    
+    logging.info("Getting article texts if within a day...")
     articles = []
     for entry in all_feeds:
         if is_recent(entry):
@@ -94,7 +97,7 @@ def main():
                 articles.append({'title': entry.title, 'text': article_text, 'url': entry.link})
 
     if not articles:
-        print("No new articles found to analyze.")
+        logging.error("No new articles found to analyze.")
         return
 
     # Format all articles into a single string for the prompt
@@ -106,10 +109,13 @@ def main():
         formatted_articles_string += f"url: {article['url']}\n\n"
 
     print("Analyzing articles... This may take a moment.")
+    logging.info("Analyzing articles with OpenAI...")
     analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
+    logging.info(f"Writing analysis to {MESSAGE_FILE}")
     with open(MESSAGE_FILE, "w") as f:
         f.write("#CYBERSECURITY ARTICLE ANALYSIS REPORT\n")
         f.write(analysis_result)
+    logging.info("Sending Email to users...")
     sendemail(MESSAGE_FILE)
 
 
