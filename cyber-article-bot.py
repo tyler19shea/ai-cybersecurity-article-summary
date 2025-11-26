@@ -33,17 +33,18 @@ def load_system_prompt():
         logging.info(error_message)
     return None
 
-def analyze_article_with_openai(system_prompt, article_text):
+def analyze_articles_with_openai(system_prompt, articles_text):
     """Analyzes the article text using OpenAI's API."""
-    if not article_text:
-        return "Article text is empty, skipping analysis."
+    if not articles_text:
+        return "No articles to analyze."
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-5.1",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": article_text}
-            ]
+                {"role": "user", "content": articles_text}
+            ],
+            temperature=0
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -64,33 +65,48 @@ def is_recent(entry, days=1):
     return False
 
 def get_article_text(entry):
-        article = Article(entry.link)
-        article.download()
-        article.parse()
-
-        full_text = article.text
-        if full_text != '':
-            return full_text
+        try:
+            article = Article(entry.link)
+            article.download()
+            article.parse()
+            return article.text
+        except Exception as e:
+            logging.error(f"Failed to download or parse {entry.link}: {e}")
+            return None
 
 def main():
     system_prompt = load_system_prompt()
     if not system_prompt:
         return
 
-    feed=[]
+    all_feeds = []
     for url in RSS_URLS:
-        feed += fetch_hn_feed(url)
+        all_feeds += fetch_hn_feed(url)
 
-    for entry in feed:
+    articles = []
+    for entry in all_feeds:
         if is_recent(entry):
-            # print(f"Title: {entry.title}")
             article_text = get_article_text(entry)
-            if article_text != None:
-                print(f"Title: {entry.title}")
-                summary = analyze_article_with_openai(system_prompt, article_text)
-                print(f"Summary:\n{summary}\n")
-                print(entry.link)
-                print(entry.published)
+            if article_text:
+                articles.append({'title': entry.title, 'text': article_text, 'url': entry.link})
+
+    if not articles:
+        print("No new articles found to analyze.")
+        return
+
+    # Format all articles into a single string for the prompt
+    formatted_articles_string = ""
+    for i, article in enumerate(articles, 1):
+        formatted_articles_string += f"--- ARTICLE {i} ---\n"
+        formatted_articles_string += f"Title: {article['title']}\n\n"
+        formatted_articles_string += f"{article['text']}\n\n"
+        formatted_articles_string += f"url: {article['url']}\n\n"
+
+    print("Analyzing articles... This may take a moment.")
+    analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
+    print("\n--- CYBERSECURITY ANALYSIS REPORT ---")
+    print(analysis_result)
+
 
 if __name__ == '__main__':
     main()
