@@ -1,4 +1,6 @@
 message.md
+processed_links.txt
+getlinks.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
