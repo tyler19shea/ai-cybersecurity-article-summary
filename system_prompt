@@ -5,6 +5,7 @@ You will be given a list of articles, each with its title, full text, and its ur
 **RULES**
 - Do not use the web
 - Do not ask for follow up or a response
+- Only provide a list of the top 10 articles
 
 Your response must be structured as follows:
 
@@ -19,4 +20,4 @@ Based on the analysis, here is the ranked list of articles from most to least im
 *   **Summary:** [A 3-5 sentence summary of the article]
     **Link:**[the url]
 3.  **[And so on...]**
-(Repeat for all articles)
+(Repeat for a maximum of 10 articles)

@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 
 def sendemail(message_file: str):
-    print({os.getenv("FROM_EMAIL")}, {os.getenv('PASSWORD_EMAIL')})
     with open(message_file) as f:
         message=f.read()
     msg=EmailMessage()
