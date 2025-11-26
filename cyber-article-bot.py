@@ -108,7 +108,7 @@ def main():
     print("Analyzing articles... This may take a moment.")
     analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
     with open(MESSAGE_FILE, "w") as f:
-        f.write("#CYBERSECURITY ARTICLE ANALYSIS REPORT")
+        f.write("#CYBERSECURITY ARTICLE ANALYSIS REPORT\n")
         f.write(analysis_result)
     sendemail(MESSAGE_FILE)
 
