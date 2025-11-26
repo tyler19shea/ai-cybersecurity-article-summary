@@ -5,6 +5,7 @@ import feedparser
 import datetime
 import logging
 import atexit
+from sendemail import sendemail
 
 load_dotenv()
 client=OpenAI()
@@ -13,6 +14,8 @@ RSS_URLS = ["https://krebsonsecurity.com/feed",
             "https://feeds.feedburner.com/TheHackersNews?format=xml",
             "https://isc.sans.edu/rssfeed_full.xml",
             "https://0dayfans.com/feed.rss"]
+
+MESSAGE_FILE = "message.md"
 
 logging.basicConfig(filename="CyberBot.log",format="%(asctime)s %(message)s",filemode="a", level=logging.INFO)
 def log_exit():
@@ -104,8 +107,10 @@ def main():
 
     print("Analyzing articles... This may take a moment.")
     analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
-    print("\n--- CYBERSECURITY ANALYSIS REPORT ---")
-    print(analysis_result)
+    with open(MESSAGE_FILE, "w") as f:
+        f.write("#CYBERSECURITY ARTICLE ANALYSIS REPORT")
+        f.write(analysis_result)
+    sendemail(MESSAGE_FILE)
 
 
 if __name__ == '__main__':
