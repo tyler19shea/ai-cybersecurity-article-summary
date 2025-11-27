@@ -155,7 +155,6 @@ def main():
     analysis_result = analyze_articles_with_openai(system_prompt, formatted_articles_string)
     
     links_in_analysis = extract_urls_from_analysis(analysis_result)
-    print(links_in_analysis)
     
     logging.info(f"Writing analysis to {MESSAGE_FILE}")
     with open(MESSAGE_FILE, "w") as f:
